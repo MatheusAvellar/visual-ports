@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 
@@ -15,18 +16,26 @@ namespace VisualPorts {
   
     List<VisualProcess> processesList;
     CollectionView listBoxView;
+    // TEMP?
+    List<string> toBeLookedUp;
+    Dictionary<string, string> reverseLookup;
 
     public MainWindow() {
       InitializeComponent();
       processesList = new List<VisualProcess>();
       processessListBox.ItemsSource = processesList;
       listBoxView = (CollectionView)CollectionViewSource.GetDefaultView(processessListBox.ItemsSource);
+
+      // TEMP?
+      reverseLookup = new Dictionary<string, string>();
     }
 
     public class VisualProcess {
       public int Port { get; set; }
       public string Name { get; set; }
       public int ID  { get; set; }
+      public string State { get; set; }
+      public string Host { get; set; }
     }
 
     private void Button_Click(object sender, RoutedEventArgs e) {
@@ -34,11 +43,17 @@ namespace VisualPorts {
       processesList.Clear();
       // Create hash table for ports (so we don't add the same port twice)
       HashSet<int> ports = new HashSet<int>();
+
+      // TEMP?
+      toBeLookedUp = new List<string>();
+
       // For each magic row in the magic table (don't ask me)
       // [Ref] timvw.be/2007/09/09/build-your-own-netstatexe-with-c/
       foreach(TcpRow tcpRow in ManagedIpHelper.GetExtendedTcpTable(true)) {
         // Only look at ports that are listening for requests
-        if(tcpRow.State.ToString().StartsWith("Listen")) {
+        string process_port_state = tcpRow.State.ToString();
+        if(process_port_state.StartsWith("Listen")
+        || process_port_state.StartsWith("Established")) {
           // Get the executable name from PID, and the port it's using
           int process_id = tcpRow.ProcessId;
           string process_name = Process.GetProcessById(process_id).ProcessName;
@@ -48,12 +63,37 @@ namespace VisualPorts {
             continue;
           // Otherwise, add it to the hash table
           ports.Add(process_port);
+
+          // TEMP?
+          string process_host = "";
+          foreach(string ip in toBeLookedUp) {
+            if(reverseLookup.ContainsKey(ip)) {
+              if(ip.Equals(""))
+                process_host = ip;
+              else
+                process_host = reverseLookup[ip];
+              continue;
+            }
+
+            string reversed = DoReverseIpLookup(ip);
+            reverseLookup.Add(ip, reversed);
+            if(reversed.Equals(""))
+              process_host = ip;
+            else
+              process_host = reversed;
+          }
+
           // And at last, insert this entry in the ListView
           processesList.Add(new VisualProcess {
             Port = process_port,
             Name = process_name,
-            ID = process_id
+            ID = process_id,
+            State = process_port_state,
+            Host = process_host
           });
+
+          // TEMP?
+          toBeLookedUp.Add(tcpRow.RemoteEndPoint.Address.ToString());
         }
       }
 
@@ -63,7 +103,20 @@ namespace VisualPorts {
       listBoxView.SortDescriptions.Add(new SortDescription("Port", ListSortDirection.Ascending));
     }
 
+    string DoReverseIpLookup(string ip) {
+      if(ip.StartsWith("0.0.") || ip.StartsWith("::"))
+        return "localhost";
+      try {
+        IPHostEntry ipEntry = Dns.GetHostEntry(ip);
+        return ipEntry.HostName;
+      } catch(Exception) {
+        Console.WriteLine("Something went wrong fetching " + ip);
+        return "";
+      }
+    }
+
     // This stuff is just copy pasted, I have no clue how it works (but it does!)
+    // [Ref] timvw.be/2007/09/09/build-your-own-netstatexe-with-c/
     #region Managed IP Helper API
 
     public class TcpTable : IEnumerable<TcpRow> {

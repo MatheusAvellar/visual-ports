@@ -4,14 +4,16 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Visual Ports" Height="450" Width="300" MinWidth="300" MinHeight="450" MaxWidth="300" MaxHeight="450">
+        Title="Visual Ports" Height="500" Width="500" MinWidth="500" MinHeight="500" MaxWidth="300" MaxHeight="450" ResizeMode="CanMinimize">
   <Grid>
     <ListView x:Name="processessListBox" Margin="10,10,10,31" Focusable="False">
       <ListView.View>
         <GridView>
-          <GridViewColumn Header="Port" Width="75" DisplayMemberBinding="{Binding Port}" />
-          <GridViewColumn Header="Name" Width="100" DisplayMemberBinding="{Binding Name}" />
-          <GridViewColumn Header="PID" Width="75" DisplayMemberBinding="{Binding ID}" />
+          <GridViewColumn Header="Port" Width="65" DisplayMemberBinding="{Binding Port}" />
+          <GridViewColumn Header="Name" Width="95" DisplayMemberBinding="{Binding Name}" />
+          <GridViewColumn Header="PID" Width="60" DisplayMemberBinding="{Binding ID}" />
+          <GridViewColumn Header="State" Width="75" DisplayMemberBinding="{Binding State}" />
+          <GridViewColumn Header="Host" Width="100" DisplayMemberBinding="{Binding Host}" />
         </GridView>
       </ListView.View>
       <ListView.ItemContainerStyle>
